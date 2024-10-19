@@ -6,7 +6,7 @@ const { authenticateToken, authorizeRole } = require("../authMiddleware");
 let orders = [];
 
 // Create a new order
-router.post("/",authenticateToken,authorizeRole('createOrder'), async (req, res) => {
+router.post("/CreateOrder",authenticateToken,authorizeRole('createOrder'), async (req, res) => {
   try {
     const newOrder = {
       id: orders.length + 1,

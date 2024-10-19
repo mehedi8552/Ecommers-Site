@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
     // "name":"Md Hasan", "email":"mehedi@gmail.com", "password":"test@123", "role":"user" 
     name: {
         type: String,
-        required: true,
+        // required: true,
     },
     password: {
         type: String,
@@ -18,7 +18,6 @@ const userSchema = new mongoose.Schema({
     role: {
         type: String,
         required: true,
-        unique: true,
     },
     createdAt: {
         type: Date,
@@ -26,5 +25,5 @@ const userSchema = new mongoose.Schema({
     },
 });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model('TestUser', userSchema);
 module.exports = User;

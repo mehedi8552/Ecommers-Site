@@ -13,7 +13,7 @@ router.get('/ReadAllProduct',authenticateToken,authorizeRole('viewPosts'), async
 });
 
 // Get a single product by ID
-router.get('/ReadByProductID:id',authenticateToken,authorizeRole('viewPosts'), async (req, res) => {
+router.get('/ReadByProductID/:id',authenticateToken,authorizeRole('viewPosts'), async (req, res) => {
     try {
         const product = await Product.findById(req.params.id);
         if (!product) return res.status(404).send('Product not found');
@@ -24,7 +24,7 @@ router.get('/ReadByProductID:id',authenticateToken,authorizeRole('viewPosts'), a
 });
 
 // Create a new product
-router.post('/CreateProduct',authenticateToken,authorizeRole('manageProducts'), async (req, res) => {
+router.post('/CreateProduct', async (req, res) => {
     const product = new Product({
         name: req.body.name,
         price: req.body.price,
@@ -40,7 +40,7 @@ router.post('/CreateProduct',authenticateToken,authorizeRole('manageProducts'), 
 });
 
 // Update a product
-router.put('/UpdateProductByID:id',authenticateToken,authorizeRole('manageProducts'), async (req, res) => {
+router.post('/UpdateProductByID/:id', async (req, res) => {
     try {
         const product = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
         if (!product) return res.status(404).send('Product not found');
@@ -51,11 +51,11 @@ router.put('/UpdateProductByID:id',authenticateToken,authorizeRole('manageProduc
 });
 
 // Delete a product
-router.delete('/DeleteProductByID:id',authenticateToken,authorizeRole('manageProducts'), async (req, res) => {
+router.post('/DeleteProductByID/:id',async (req, res) => {
     try {
         const deletedProduct = await Product.findByIdAndDelete(req.params.id);
-        if (!deletedProduct) return res.status(404).send('Product not found');
-        res.status(204).send();
+        if (!deletedProduct) return res.status(404).json({ message: 'Product not found' });
+        res.status(200).json({ message: 'Product deleted successfully', deletedProduct });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

@@ -1,5 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
+const OrderModel = require("./Model/Order");
 const SSLCommerzPayment = require("sslcommerz-lts");
 const bodyParser = require("body-parser");
 const { MongoClient, ObjectId, ServerApiVersion } = require("mongodb");
@@ -15,12 +16,29 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true })); // To handle form data sent by SSLCommerz
 
 // MongoDB connection
-const client = new MongoClient(mongoURI, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
+// const client = new MongoClient(
+//   "mongodb+srv://user8552:user8552@cluster0.derptwk.mongodb.net/EcommerceTo",
+//   {
+//     serverApi: {
+//       version: ServerApiVersion.v1,
+//       strict: true,
+//       deprecationErrors: true,
+//     },
+//   }
+// );
+
+mongoose
+  .connect(
+    "mongodb+srv://user8552:user8552@cluster0.derptwk.mongodb.net/EcommerceTo"
+  )
+  .then(() => {
+    console.log("Connected to MongoDB");
+  })
+  .catch((error) => {
+    console.error("Error connecting to MongoDB:", error);
+  });
+app.get("/", async (req, res) => {
+  res.send("Root Server Is Running");
 });
 
 // Middleware for CORS and JSON parsing
@@ -40,37 +58,40 @@ const is_live = false; // true for live mode, false for sandbox
 const run = async () => {
   try {
     // Connect to the database
-    await client.connect();
-
-    // Collection for saving orders
-    const ordersCollection = client.db("test").collection("orders");
+    // await client.connect();
 
     // POST request for creating a payment
     app.post("/Order", async (req, res) => {
       // Plan details sent from client side
-      const planDetails = req.body;
+      const tran_id = new ObjectId().toString();
 
+      const planDetails = {
+        userId: req.body.userId,
+        price: req.body.price,
+        total_order: req.body.total_order,
+        product_name: req.body.product_name,
+        cus_email: req.body.cus_email,
+        status: "pending",
+        tran_id: tran_id,
+      };
       // Convert price into an integer
       const price = parseInt(planDetails.price);
-
-      // Create a transaction ID using ObjectId
-      const tran_id = new ObjectId().toString();
 
       // Payment data to send to SSLCommerz
       const data = {
         total_amount: price,
         currency: "BDT",
         tran_id: tran_id,
-        success_url: `${process.env.SERVER_API}/payment/success`,
-        fail_url: `${process.env.SERVER_API}/payment/fail`,
-        cancel_url: `${process.env.SERVER_API}/payment/cancel`,
-        ipn_url: `${process.env.SERVER_API}/payment/ipn`,
+        success_url: `${process.env.SERVER_API}/payment/success?tran_id=${tran_id}`,
+        fail_url: `${process.env.SERVER_API}/payment/fail?tran_id=${tran_id}`,
+        cancel_url: `${process.env.SERVER_API}/payment/cancel?tran_id=${tran_id}`,
+        ipn_url: `${process.env.SERVER_API}/payment/ipn?tran_id=${tran_id}`,
         shipping_method: "Courier",
-        product_name: planDetails.plan,
+        product_name: planDetails.product_name,
         product_category: "Electronic",
         product_profile: "general",
         cus_name: "Customer Name",
-        cus_email: planDetails.user_email,
+        cus_email: planDetails.cus_email,
         cus_add1: "Dhaka",
         cus_add2: "Dhaka",
         cus_city: "Dhaka",
@@ -87,23 +108,45 @@ const run = async () => {
         ship_postcode: 1000,
         ship_country: "Bangladesh",
       };
+      // Collection for saving orders
+      // const order = { ...planDetails, tran_id, status: "pending" };
+      // const result = await OrderModel.create(order);
+      // app.use("/CreateOrder",
+      // const createInvoiceOrder = async (req, res) => {
+      //   const newOrder = {
+      //     userId: req.body.userId,
+      //     price: req.body.price,
+      //     total_order: req.body.total_order,
+      //     product_name: req.body.products,
+      //     cus_email: req.body.cus_email,
+      //     status: "pending",
+      //     tran_id: tran_id,
+      //   };
+      //   let order = await OrderModel.create(newOrder);
+      //   res.status(201).json(order);
+      // };
+      // createInvoiceOrder(req, res);
 
+      // // );
       // Initialize SSLCommerz payment
       const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
       sslcz.init(data).then((apiResponse) => {
         // Get the payment gateway URL
         let GatewayPageURL = apiResponse.GatewayPageURL;
-        res.send({ url: GatewayPageURL });
-
         // Insert order details into the database
-        const order = { ...planDetails, tran_id, status: "pending" };
-        const result = ordersCollection.insertOne(order);
+        const order = new OrderModel({
+          ...planDetails,
+          tran_id,
+          status: "pending",
+        });
+        const result = order.save();
+        res.send({ url: GatewayPageURL, data: order });
       });
 
       // POST request for handling successful payment
       app.post("/payment/success", async (req, res) => {
         // Update order status in the database to successful
-        const result = await ordersCollection.updateOne(
+        const result = await OrderModel.updateOne(
           { tran_id },
           { $set: { status: "success" } }
         );
@@ -114,7 +157,7 @@ const run = async () => {
       // POST request for handling failed payment
       app.post("/payment/fail", async (req, res) => {
         // Update order status in the database to failed
-        const result = await ordersCollection.updateOne(
+        const result = await OrderModel.updateOne(
           { tran_id },
           { $set: { status: "failed" } }
         );
@@ -125,7 +168,7 @@ const run = async () => {
       // POST request for handling canceled payment
       app.post("/payment/cancel", async (req, res) => {
         // Update order status in the database to canceled
-        const result = await ordersCollection.updateOne(
+        const result = await OrderModel.updateOne(
           { tran_id },
           { $set: { status: "canceled" } }
         );
@@ -134,7 +177,7 @@ const run = async () => {
       });
 
       // POST request for handling IPN (Instant Payment Notification)
-      app.post("/payment/ipn", async (req, res) => {
+      app.post("/payment", async (req, res) => {
         // Update order status in the database based on IPN notification
         const result = await ordersCollection.updateOne(
           { tran_id },

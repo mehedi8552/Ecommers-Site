@@ -5,17 +5,31 @@ const orderSchema = new mongoose.Schema({
         // type: mongoose.Schema.Types.ObjectId,
         type: String,
         ref: 'User',
-        required: true,
+        // required: true,
     },
-    products: {
-        // type: mongoose.Schema.Types.ObjectId,
-            type: String,   
-            ref: 'Product',
-            required: true,
-        },
-    total: {
+    tran_id:{
+        type: mongoose.Schema.Types.ObjectId,
+        // required: true,
+    },
+    status:{
+        type: String,
+        // required: true,
+    },
+    cus_email:{
+        type: String,
+        // required: true,
+    },
+    price: {
         type: Number,
-        required: true,
+        // required: true,
+    },
+    product_name:{
+        type: String,
+        // required: true,
+    },
+    tran_id:{
+        type: mongoose.Schema.Types.ObjectId,
+        // required: true,
     },
     createdAt: {
         type: Date,
@@ -23,5 +37,5 @@ const orderSchema = new mongoose.Schema({
     },
 });
 
-const Order = mongoose.model('Order', orderSchema);
+const Order = mongoose.model('order', orderSchema);
 module.exports = Order;
