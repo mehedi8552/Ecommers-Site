@@ -1,12 +1,27 @@
 const express = require("express");
 const router = express.Router();
 const OrderModel = require("../Model/Order");
-const { authenticateToken, authorizeRole } = require("../authMiddleware");
+// const { authenticateToken, authorizeRole } = require("../authMiddleware");
 // Mock data
 let orders = [];
 
+router.get("/", (req, res) => {
+  console.log("hello");
+
+  res.json("I am from order route");
+});
+
+router.get("/ViewAllOrder", async (req, res) => {
+  try {
+    const orders = await OrderModel.find();
+    res.status(201).json({ data: orders, message: "success" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Create a new order
-router.post("/CreateOrder",authenticateToken,authorizeRole('createOrder'), async (req, res) => {
+router.post("/CreateOrder", async (req, res) => {
   try {
     const newOrder = {
       id: orders.length + 1,
@@ -22,7 +37,7 @@ router.post("/CreateOrder",authenticateToken,authorizeRole('createOrder'), async
 });
 
 // Get all orders
-router.get("/:userID",authenticateToken,authorizeRole('readOrder'), async (req, res) => {
+router.get("/:userID", async (req, res) => {
   try {
     let orders = await OrderModel.find({ userId: req.params.userID });
     res.json(orders);
@@ -32,7 +47,7 @@ router.get("/:userID",authenticateToken,authorizeRole('readOrder'), async (req, 
 });
 
 // Get a specific order
-router.get("/:ProductId",authenticateToken,authorizeRole('readOrder'), (req, res) => {
+router.get("/:ProductId", (req, res) => {
   try {
     const order = orders.find({ _id: req.params.ProductId });
     if (!order) return res.status(404).send("Order not found");
